@@ -1,0 +1,34 @@
+[deploy]
+# Tuned for this service's actual workload, NOT copied from the main
+# app's railway.toml -- copying that config verbatim would silently
+# break every stream after 2 minutes. See below for why each value
+# differs.
+#
+# --timeout 14700: gunicorn's worker silence-timeout, in seconds. Set
+# comfortably ABOVE debate_stream_generator's own max_duration=14400
+# (4h) so the application's own graceful cutoff (yields an "error"
+# TIMEOUT event, client reconnects cleanly) always fires first. The
+# main app's --timeout 120 exists for short-lived request/response
+# cycles and would kill every single stream almost immediately if
+# reused here.
+#
+# --threads 100: a STARTING POINT, not a measured number. Threads are
+# cheap relative to workers (shared process memory) and this service's
+# only job is holding open, mostly-idle connections that wake up every
+# 5s to poll -- exactly the workload thread-based concurrency handles
+# well. This number has NOT been load-tested yet. Before trusting it
+# for a real debate: run a genuine throwaway-event probe (same method
+# as the Aug 8 measurement that actually found the original problem --
+# a real event, real held connections, real before/after latency) --
+# not a synthetic tool against a past event, which is exactly the
+# mistake that produced the false "100 concurrent, ship as-is" result
+# this whole fix exists to correct. See
+# D1_LIVE_DEBATE_INFRASTRUCTURE_HANDOFF.docx §2.
+#
+# --workers 2: kept low deliberately -- workers duplicate the whole
+# app's memory footprint; threads don't. Two gives basic redundancy
+# (one crashed worker doesn't take the service fully down) without
+# paying the memory cost of scaling via workers instead of threads.
+startCommand = "gunicorn app:app --workers 2 --threads 100 --worker-class gthread --timeout 14700 --bind 0.0.0.0:$PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
