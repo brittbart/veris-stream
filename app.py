@@ -35,7 +35,7 @@ the source of truth this service is built around.
 """
 
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from dotenv import load_dotenv
@@ -43,6 +43,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+
+# --- CORS: explicit allow-list -------------------------------------------
+# The website's live debate page (templates/debate.html on verisreports)
+# connects here with EventSource from https://verumsignal.com, which is a
+# cross-origin request. Browsers block it silently without these headers.
+# Allow-list only — never "*" — because this service reads the database.
+_ALLOWED_ORIGINS = {
+    "https://verumsignal.com",
+    "https://www.verumsignal.com",
+}
+
+@app.after_request
+def _cors(resp):
+    origin = request.headers.get("Origin", "")
+    if origin in _ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Headers"] = "Accept, Cache-Control"
+        resp.headers["Vary"] = "Origin"
+    return resp
+
 
 # CORS: scoped to the known site origins, not a blanket allow-all.
 # Needed because templates/debate.html's EventSource call will need to
