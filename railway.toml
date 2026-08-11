@@ -29,6 +29,6 @@
 # app's memory footprint; threads don't. Two gives basic redundancy
 # (one crashed worker doesn't take the service fully down) without
 # paying the memory cost of scaling via workers instead of threads.
-startCommand = "gunicorn app:app --workers 2 --threads 100 --worker-class gthread --timeout 14700 --bind 0.0.0.0:$PORT"
+startCommand = "gunicorn app:app --workers 2 --threads 100 --worker-class gthread --timeout 14700 --bind [::]:$PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
