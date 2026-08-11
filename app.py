@@ -109,12 +109,38 @@ def get_db():
 
 @app.route("/health")
 def health():
-    # Cheap liveness check for Railway's healthcheckPath -- does not
-    # touch the DB, matching the main app's own /api/health pattern
-    # (a DB-down event shouldn't also flap this service's health
-    # status, since existing connections should keep streaming
-    # whatever claims are already cached in-flight).
-    return jsonify({"status": "ok", "service": "veris-stream"})
+    # Railway uses this as the deploy gate (healthcheckPath, 120s timeout), so it
+    # must NEVER return non-200 on a database problem -- a hard failure would
+    # block the very deploy that fixes an outage.
+    #
+    # The original comment here argued against touching the DB at all: a DB-down
+    # event should not flap this service's health while in-flight streams keep
+    # serving claims already cached. That reasoning is preserved -- this always
+    # returns HTTP 200. What changed is that it now REPORTS database state rather
+    # than asserting "ok" unconditionally. It returned 200 throughout a period
+    # when every real route was 500ing on a DB error (S9-031).
+    #
+    # "service" says veris-sse, not veris-stream: veris-stream is the capture
+    # poller, a separate Railway service that binds no port. The collision cost
+    # hours of debugging against a service never in the request path.
+    db_state = "unknown"
+    try:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT 1")
+            cur.fetchone()
+            db_state = "ok"
+        finally:
+            conn.close()
+    except Exception as exc:
+        db_state = "unreachable"
+        app.logger.error("[health] database check failed: %s", exc)
+    return jsonify({
+        "status": "ok" if db_state == "ok" else "degraded",
+        "service": "veris-sse",
+        "database": db_state,
+    }), 200
 
 
 from flask import Blueprint
