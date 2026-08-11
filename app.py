@@ -77,7 +77,7 @@ def get_db():
     DB_NAME, DB_USER, DB_PASSWORD, or DATABASE_URL as a single DSN.
     """
     if os.environ.get("DATABASE_URL"):
-        return psycopg2.connect(dsn=os.environ["DATABASE_URL"])
+        return psycopg2.connect(os.environ["DATABASE_URL"])
     return psycopg2.connect(
         dbname=os.environ["DB_NAME"],
         user=os.environ["DB_USER"],
