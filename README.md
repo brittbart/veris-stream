@@ -68,3 +68,11 @@ real, separate step, not an oversight:
   §4.6) hasn't been done — `debate.html`'s `EventSource` call still
   uses a same-origin relative URL, which won't work once this is a
   real cross-origin request to a different subdomain.
+
+## Deploy configuration (Railway service veris-sse)
+
+The start command is set as a Railway service setting (dashboard, not config-as-code, which Railway ignores after 2026-12-01):
+
+    gunicorn app:app --workers 2 --threads 100 --worker-class gthread --timeout 14700 --bind [::]:$PORT
+
+`--timeout 14700` is gunicorn's worker silence-timeout and must stay above debate_stream_generator's max_duration=14400 (4h) so the application's own TIMEOUT event fires first; the main app's `--timeout 120` would kill every stream after two minutes. `--threads 100` is a starting point, not a load-tested number; `--workers 2` is kept low because workers duplicate memory and threads do not. Healthcheck path is /health.
