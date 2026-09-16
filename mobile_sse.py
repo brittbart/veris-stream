@@ -112,7 +112,7 @@ _TZ_OFFSETS = {
     'ET': -4, 'EST': -5, 'EDT': -4,
     'CT': -5, 'CST': -6, 'CDT': -5,
     'MT': -6, 'MST': -7, 'MDT': -6,
-    'PT': -7, 'PST': -8, 'PDT': -7,
+    'PT': -7, 'PST': -8, 'PDT': -7, 'AKST': -9, 'AKDT': -8, 'HST': -10,
 }
 ENDED_GRACE_HOURS = 4  # matches debate_stream_generator max_duration (14400 s)
 def _event_has_ended(event_date, start_time, tz_name, _now=None):
